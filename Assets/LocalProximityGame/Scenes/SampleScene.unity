@@ -1299,9 +1299,8 @@ MonoBehaviour:
   m_coordinates: {fileID: 1099364380}
   m_offsetInfo: {fileID: 1520212558}
   m_nearestMarker: {fileID: 474182424}
-  m_offsetTimer: 20
   m_useHeading: 1
-  m_usePresetCoordinates: 1
+  m_useFirstPresetAsStartPosition: 1
   m_presetCoordinates:
   - latitude: 39.77528
     longitude: -105.06448

@@ -35,10 +35,10 @@ namespace LocalProximityGame.Scripts
         public TextMeshProUGUI m_coordinates;
         public TextMeshProUGUI m_offsetInfo;
         public TextMeshProUGUI m_nearestMarker;
-        public int m_offsetTimer = 20;
         public bool m_useHeading;
-        public bool m_usePresetCoordinates;
-        [Tooltip("The first coordinate should be the start position. Format as longitude, altitude, latitude")]
+        [Tooltip("The first coordinate should be the start position, else we will use the device location.")]
+        public bool m_useFirstPresetAsStartPosition = true;
+        [Tooltip("Format as latitude, altitude, longitude. If empty, preset coordinates are not used")]
         public PresetCoordinates[] m_presetCoordinates;
 
         private float _latitudeOffset = 111194.90f;
@@ -46,9 +46,10 @@ namespace LocalProximityGame.Scripts
         //[HideInInspector] public List<GameObject> _markerList;
         private int _offsetTimerCount;
         private Vector3 _offset;
-        private bool _updatePlayerPosition;
+        private bool _updatePlayerPosition = false;
         private List<MarkerBehavior> _markers;
         private List<GameObject> _inRangeMarkers;
+        private readonly int _offsetTimer = 20;
 
         private void Awake()
         {
@@ -70,7 +71,8 @@ namespace LocalProximityGame.Scripts
                     _markers.Add(mb);
                 }
             }
-            _offset = new Vector3((float)m_presetCoordinates[0].latitude, (float)m_presetCoordinates[0].altitude,
+            if(m_presetCoordinates.Length > 0)
+                _offset = new Vector3((float)m_presetCoordinates[0].latitude, (float)m_presetCoordinates[0].altitude,
                 (float)m_presetCoordinates[0].longitude);
 
         }
@@ -99,11 +101,11 @@ namespace LocalProximityGame.Scripts
             }
 
             Input.compass.enabled = m_useHeading;
-            if (!m_usePresetCoordinates)
+            if (!m_useFirstPresetAsStartPosition)
                 _offset = new Vector3(Input.location.lastData.latitude, 0, Input.location.lastData.longitude);
 
-            InvokeRepeating("SetStartPosition",1f,.2f);
-            InvokeRepeating("SetLongitudeAndLatitudeOffset", 0f, 10f);
+            InvokeRepeating(nameof(SetStartPosition),1f,.2f);
+            InvokeRepeating(nameof(SetLongitudeAndLatitudeOffset), 0f, 10f);
         }
 
 
@@ -159,29 +161,29 @@ namespace LocalProximityGame.Scripts
 
         void SetStartPosition()
         {
-
-            if (m_usePresetCoordinates)
+            //We have a list of coordinates, use them to make markers!
+            if(m_presetCoordinates.Length > 0)
             {
                 _updatePlayerPosition = true;
                 foreach (var mark in m_presetCoordinates)
                     MakeMarkerAtLocation(mark);
 
                 Debug.Log("Offset is set to " + _offset.ToString("F4"));
-                CancelInvoke("SetStartPosition");
+                CancelInvoke(nameof(SetStartPosition));
             }
 
             //Give the location data time to settle down and become more accurate...
             _offsetTimerCount++;
             if (m_offsetInfo)
                 m_offsetInfo.text = _offsetTimerCount + " _offset is " + _offset ;
-            if (_offsetTimerCount >= m_offsetTimer)
+            if (_offsetTimerCount >= _offsetTimer)
             {
-                if(!m_usePresetCoordinates)
+                if(m_presetCoordinates.Length > 0)
                     _offset = new Vector3(Input.location.lastData.latitude, 0f, Input.location.lastData.longitude);
                 _updatePlayerPosition = true;
                 if (m_offsetInfo)
                     m_offsetInfo.text = _offsetTimerCount + " _offset is " + _offset.ToString("F6") ;
-                CancelInvoke("SetStartPosition");
+                CancelInvoke(nameof(SetStartPosition));
             }
         }
 
@@ -256,8 +258,8 @@ namespace LocalProximityGame.Scripts
                 Debug.Log("Location is not enabled!");
             else
                 horizontalAccuracy = Input.location.lastData.horizontalAccuracy;
-            
-            if (!m_usePresetCoordinates)
+
+            if (!m_useFirstPresetAsStartPosition)
                 currentPosition = new Vector3(Input.location.lastData.latitude, 0, Input.location.lastData.longitude);
 
             //W longitude distance should be a negative value in Colorado
