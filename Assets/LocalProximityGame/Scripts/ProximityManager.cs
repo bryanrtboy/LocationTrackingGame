@@ -2,11 +2,20 @@
 //Script to use a current GPS position to move a player in the Unity world and place objects
 //either randomly or using GPS coordinates. As the player gets close to the objects,
 //A shadergraph shader changes the color of the object
+// My Testing data locations
+// Start Position   Home =          39.77528, -105.06448
+// Location 1       Kendall St. =   39.77488, -105.06622
+// Location 2       Ingalls St. =   39.77544, -105.06391
+//              10 Meters north =                39.77537, -105.06448
+//
+//Distance calculator - http://edwilliams.org/gccalc.htm
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace LocalProximityGame.Scripts
 {
@@ -27,16 +36,19 @@ namespace LocalProximityGame.Scripts
         public TextMeshProUGUI m_offsetInfo;
         public TextMeshProUGUI m_nearestMarker;
         public int m_offsetTimer = 20;
-        public bool m_useHeading = false;
-        public bool m_usePresetCoordinates = false;
+        public bool m_useHeading;
+        public bool m_usePresetCoordinates;
+        [Tooltip("The first coordinate should be the start position. Format as longitude, altitude, latitude")]
+        public PresetCoordinates[] m_presetCoordinates;
 
         private float _latitudeOffset = 111194.90f;
         private float _longitudeOffset = 85459.51f;
         //[HideInInspector] public List<GameObject> _markerList;
         private int _offsetTimerCount;
         private Vector3 _offset;
-        private bool _updatePlayerPosition = false;
-        public List<MarkerBehavior> _markers;
+        private bool _updatePlayerPosition;
+        private List<MarkerBehavior> _markers;
+        private List<GameObject> _inRangeMarkers;
 
         private void Awake()
         {
@@ -44,12 +56,13 @@ namespace LocalProximityGame.Scripts
             MeshRenderer markermr = m_marker.GetComponent<MeshRenderer>();
 
             _markers = new List<MarkerBehavior>();
+            _inRangeMarkers = new List<GameObject>();
             if (mr && markermr)
             {
                 for (int i = 0; i < m_markerCount; i++)
                 {
-                    float x = UnityEngine.Random.Range(mr.bounds.min.x,mr.bounds.max.x);
-                    float z = UnityEngine.Random.Range(mr.bounds.min.z,mr.bounds.max.z);
+                    float x = Random.Range(mr.bounds.min.x,mr.bounds.max.x);
+                    float z = Random.Range(mr.bounds.min.z,mr.bounds.max.z);
                     GameObject m = Instantiate(m_marker, new Vector3(x, mr.bounds.max.y + (markermr.bounds.max.y / 2), z),
                         Quaternion.identity);
                     m.name = "m_" + i;
@@ -57,6 +70,8 @@ namespace LocalProximityGame.Scripts
                     _markers.Add(mb);
                 }
             }
+            _offset = new Vector3((float)m_presetCoordinates[0].latitude, (float)m_presetCoordinates[0].altitude,
+                (float)m_presetCoordinates[0].longitude);
 
         }
 
@@ -74,35 +89,34 @@ namespace LocalProximityGame.Scripts
             }
             if (maxWait < 1)
             {
-                print("Timed out");
+                Debug.Log("Timed out");
                 yield break;
             }
             if (Input.location.status == LocationServiceStatus.Failed)
             {
-                print("Unable to determine device location");
+                Debug.Log("Unable to determine device location");
                 yield break;
             }
-            else
-            {
-                Input.compass.enabled = m_useHeading;
+
+            Input.compass.enabled = m_useHeading;
+            if (!m_usePresetCoordinates)
                 _offset = new Vector3(Input.location.lastData.latitude, 0, Input.location.lastData.longitude);
-                InvokeRepeating("SetStartPosition",1f,.2f);
-                InvokeRepeating("SetLongitudeAndLatitudeOffset", 0f, 10f);
 
-            }
+            InvokeRepeating("SetStartPosition",1f,.2f);
+            InvokeRepeating("SetLongitudeAndLatitudeOffset", 0f, 10f);
         }
 
-        private void Update()
-        {
-            if(m_useHeading && Input.location.status == LocationServiceStatus.Running)
-                m_player.transform.rotation = Quaternion.Euler(0, -Input.compass.magneticHeading, 0);
-        }
 
         private void LateUpdate()
         {
 
+
             if (_updatePlayerPosition && Input.location.status == LocationServiceStatus.Running)
             {
+
+                if(m_useHeading)
+                    m_player.transform.rotation = Quaternion.Euler(0, Input.compass.trueHeading, 0);
+
                 Vector3 pos = new Vector3((Input.location.lastData.latitude - _offset.x) * _latitudeOffset, 0, (Input.location.lastData.longitude - _offset.z) * _longitudeOffset);
                 m_player.transform.position = Vector3.Lerp(m_player.transform.position, pos, Time.deltaTime);
                 if (m_offsetInfo)
@@ -121,10 +135,23 @@ namespace LocalProximityGame.Scripts
                         if (marker.m_isInRange)
                         {
                             msg += marker.name + " is in range.\n";
+                            if (!_inRangeMarkers.Contains(marker.gameObject))
+                            {
+                                _inRangeMarkers.Add(marker.gameObject);
+                                Handheld.Vibrate();
+                            }
+
                             i++;
                         }
+                        else
+                        {
+                            if (_inRangeMarkers.Contains(marker.gameObject))
+                            {
+                                _inRangeMarkers.Remove(marker.gameObject);
+                            }
+                        }
                     }
-                    m_nearestMarker.text = msg + "\n" + i.ToString() + " total";
+                    m_nearestMarker.text = msg + "\n" + i + " total";
                 }
             }
 
@@ -132,21 +159,13 @@ namespace LocalProximityGame.Scripts
 
         void SetStartPosition()
         {
-            //Testing data locations
-            // Start Position   42nd Avenue = 39.77528f, -105.06448f
-            // Location 1       Kendall St. = 39.77488f, 0, -105.06622f
-            // Location 2       Ingalls St. = 39.77544f, -105.06391f
-            //
-            //Distance calculator - http://edwilliams.org/gccalc.htm
 
             if (m_usePresetCoordinates)
             {
-                _offset = new Vector3(39.77528f, 0, -105.06448f);
                 _updatePlayerPosition = true;
-                MakeMarkerAtLocation(new Vector3(39.77488f, 0, -105.06622f), "Kendall", true);
-                MakeMarkerAtLocation(new Vector3(39.77544f, 0, -105.06391f), "Ingalls", true);
-                MakeMarkerAtLocation(_offset, "Home", false);
-                MakeMarkerAtLocation(new Vector3(39.77537f, 0, _offset.z), "10m North", true);
+                foreach (var mark in m_presetCoordinates)
+                    MakeMarkerAtLocation(mark);
+
                 Debug.Log("Offset is set to " + _offset.ToString("F4"));
                 CancelInvoke("SetStartPosition");
             }
@@ -154,26 +173,26 @@ namespace LocalProximityGame.Scripts
             //Give the location data time to settle down and become more accurate...
             _offsetTimerCount++;
             if (m_offsetInfo)
-                m_offsetInfo.text = _offsetTimerCount.ToString() + " _offset is " + _offset.ToString() ;
+                m_offsetInfo.text = _offsetTimerCount + " _offset is " + _offset ;
             if (_offsetTimerCount >= m_offsetTimer)
             {
-                if(!m_usePresetCoordinates && Input.location.isEnabledByUser)
+                if(!m_usePresetCoordinates)
                     _offset = new Vector3(Input.location.lastData.latitude, 0f, Input.location.lastData.longitude);
                 _updatePlayerPosition = true;
-                Debug.Log("Offset is set to " + _offset);
                 if (m_offsetInfo)
-                    m_offsetInfo.text = _offsetTimerCount.ToString() + " _offset is " + _offset.ToString("F6") ;
+                    m_offsetInfo.text = _offsetTimerCount + " _offset is " + _offset.ToString("F6") ;
                 CancelInvoke("SetStartPosition");
             }
         }
 
-        GameObject MakeMarkerAtLocation(Vector3 coordinates, string label, bool addToList)
+        GameObject MakeMarkerAtLocation(PresetCoordinates mark)
         {
+            Vector3 coordinates = new Vector3((float)mark.latitude, (float)mark.altitude, (float)mark.longitude);
             Vector3 distanceFromPlayerOrigin = coordinates - _offset;
-            Debug.Log( label + " is " + distanceFromPlayerOrigin.ToString("F6"));
+            //Debug.Log( label + " is " + distanceFromPlayerOrigin.ToString("F6"));
             GameObject g = Instantiate(m_marker, new Vector3(distanceFromPlayerOrigin.x * _latitudeOffset, 0, distanceFromPlayerOrigin.z * _longitudeOffset), Quaternion.identity);
-            g.name = label;
-            if (addToList)
+            g.name = mark.label;
+            if (mark.includeInMarkerList)
             {
                 MarkerBehavior mb = g.GetComponent<MarkerBehavior>();
                 _markers.Add(mb);
@@ -208,12 +227,10 @@ namespace LocalProximityGame.Scripts
                     print("Unable to determine device location");
                     yield break;
                 }
-                else
-                {
-                    Input.compass.enabled = m_useHeading;
-                    InvokeRepeating("SetStartPosition",1f,.2f);
-                    InvokeRepeating("SetLongitudeAndLatitudeOffset", 0f, 10f);
-                }
+
+                Input.compass.enabled = m_useHeading;
+                InvokeRepeating("SetStartPosition",1f,.2f);
+                InvokeRepeating("SetLongitudeAndLatitudeOffset", 0f, 10f);
             }
         }
 
@@ -232,21 +249,28 @@ namespace LocalProximityGame.Scripts
 
         void SetLongitudeAndLatitudeOffset()
         {
-            Vector3 currentPosition = new Vector3(Input.location.lastData.latitude, 0, Input.location.lastData.longitude);
+            float horizontalAccuracy = 0;
+            Vector3 currentPosition = _offset;
 
-            if(Input.location.isEnabledByUser)
-                currentPosition = new Vector3(39.77527f, 0, -105.0645f);
+            if (!Input.location.isEnabledByUser)
+                Debug.Log("Location is not enabled!");
+            else
+                horizontalAccuracy = Input.location.lastData.horizontalAccuracy;
+            
+            if (!m_usePresetCoordinates)
+                currentPosition = new Vector3(Input.location.lastData.latitude, 0, Input.location.lastData.longitude);
 
+            //W longitude distance should be a negative value in Colorado
             float roundedLongitude = Mathf.RoundToInt(currentPosition.z);
-            //W longitude distance should be a negative value
             _longitudeOffset = -CalculateDistance(currentPosition.x, currentPosition.x, roundedLongitude, roundedLongitude + 1);
 
             float roundedLatitude = Mathf.RoundToInt(currentPosition.x);
             _latitudeOffset = CalculateDistance(roundedLatitude, roundedLatitude + 1, currentPosition.z, currentPosition.z);
+
             string message = "1 degree of longitude is " + _longitudeOffset.ToString("F6") + " meters at this latitude" +
                              "\n1 degree of latitude is " + _latitudeOffset.ToString("F6") + " meters at this longitude" +
-                             "\ncurrent location is lat: "+ Input.location.lastData.latitude  + " lon: " +  Input.location.lastData.longitude + " alt: " + Input.location.lastData.altitude +
-                             "\nhorizontal accuracy is " + Input.location.lastData.horizontalAccuracy;
+                             "\ncurrent location is lat: "+ currentPosition.x + " lon: " +  currentPosition.z + " alt: " + currentPosition.y +
+                             "\nhorizontal accuracy is " + horizontalAccuracy.ToString("F4");
             if (m_coordinates)
                 m_coordinates.text = message;
         }
@@ -256,5 +280,15 @@ namespace LocalProximityGame.Scripts
             m_triggerDistance = distance;
         }
 
+    }
+
+    [Serializable]
+    public class PresetCoordinates
+    {
+        public double latitude;
+        public double longitude;
+        public double altitude;
+        public string label = "Marker";
+        public bool includeInMarkerList = true;
     }
 }

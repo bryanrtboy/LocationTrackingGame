@@ -7,6 +7,7 @@ namespace LocalProximityGame.Scripts
         public Transform m_target;
         public float m_smoothSpeed = .125f;
         public bool m_lookAt = false;
+        public bool m_matchTargetDirection = false;
         private Vector3 _offset;
         private void Awake()
         {
@@ -21,8 +22,18 @@ namespace LocalProximityGame.Scripts
             if(m_lookAt)
                 transform.LookAt(m_target);
 
+            if (m_matchTargetDirection)
+                transform.rotation = m_target.rotation;
+
+
         }
 
 
+        public void MatchTargetDirection(bool value)
+        {
+            if(!value)
+                transform.eulerAngles = Vector3.zero;
+            m_matchTargetDirection = value;
+        }
     }
 }
