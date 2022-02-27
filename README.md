@@ -7,7 +7,7 @@ The challenge is to convert all of this into meters based on the longitude of th
 
 Using a [Great Circle](http://edwilliams.org/gccalc.htm)  calculator, we can feed in a one degree change to calculate our distances at any location. This is then used to move the player in the Unity scene a corresponding distance in meters. We also use the equation to place objects based on supplied GPS coordinates. Then, it's a simple matter to calculate how close the player is to any object place into the game.
 
-#Directions to use
+# Directions to use
 
 There are two ways to test this, using preset coordinates or your current location.
 
