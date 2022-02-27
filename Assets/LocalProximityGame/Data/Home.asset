@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c382610852da14c5fa2ccbd40cd270dc, type: 3}
+  m_Name: Home
+  m_EditorClassIdentifier: 
+  presetCoordinates:
+  - latitude: 39.77524725492004
+    longitude: -105.06448436408384
+    altitude: 0
+    label: Home
+    includeInMarkerList: 0
+  - latitude: 39.77488
+    longitude: -105.06622
+    altitude: 0
+    label: Kendall
+    includeInMarkerList: 0
+  - latitude: 39.77544137488087
+    longitude: -105.0638712581985
+    altitude: 0
+    label: Ingalls
+    includeInMarkerList: 0
+  - latitude: 39.77537
+    longitude: -105.06448
+    altitude: 0
+    label: 10 m North
+    includeInMarkerList: 0
+  - latitude: 39.777926189723864
+    longitude: -105.06691216364507
+    altitude: 0
+    label: Hopper Hollow
+    includeInMarkerList: 0
+  - latitude: 39.77402940724229
+    longitude: -105.06079036200039
+    altitude: 0
+    label: Randall Park
+    includeInMarkerList: 0

@@ -23,8 +23,11 @@ namespace LocalProximityGame.Scripts
     {
 
 
-        [Tooltip("Player should be in the Scene at location 0,0,0")]
+        [Tooltip("Player starts in the Scene at location 0,0,0")]
         public GameObject m_player;
+
+        public float m_inputAccuracy = 5f;
+        public float m_distanceAccuracy = 1f;
         [Tooltip("Prefab to spawn markers into the world")]
         public GameObject m_marker;
         public int m_markerCount = 4;
@@ -38,8 +41,8 @@ namespace LocalProximityGame.Scripts
         public bool m_useHeading;
         [Tooltip("The first coordinate should be the start position, else we will use the device location.")]
         public bool m_useFirstPresetAsStartPosition = true;
-        [Tooltip("Format as latitude, altitude, longitude. If empty, preset coordinates are not used")]
-        public PresetCoordinates[] m_presetCoordinates;
+        [Tooltip("If empty, preset coordinates are not used")]
+        public CoordinateManagerScriptableObject m_presets;
 
         private float _latitudeOffset = 111194.90f;
         private float _longitudeOffset = 85459.51f;
@@ -71,9 +74,9 @@ namespace LocalProximityGame.Scripts
                     _markers.Add(mb);
                 }
             }
-            if(m_presetCoordinates.Length > 0)
-                _offset = new Vector3((float)m_presetCoordinates[0].latitude, (float)m_presetCoordinates[0].altitude,
-                (float)m_presetCoordinates[0].longitude);
+            if(m_presets.presetCoordinates.Length > 0)
+                _offset = new Vector3((float)m_presets.presetCoordinates[0].latitude, (float)m_presets.presetCoordinates[0].altitude,
+                (float)m_presets.presetCoordinates[0].longitude);
 
         }
 
@@ -82,7 +85,7 @@ namespace LocalProximityGame.Scripts
             if (!Input.location.isEnabledByUser)
                 yield break;
 
-            Input.location.Start(1,1);
+            Input.location.Start(m_inputAccuracy,m_distanceAccuracy);
             int maxWait = 20;
             while (Input.location.status == LocationServiceStatus.Initializing && maxWait > 0)
             {
@@ -162,10 +165,10 @@ namespace LocalProximityGame.Scripts
         void SetStartPosition()
         {
             //We have a list of coordinates, use them to make markers!
-            if(m_presetCoordinates.Length > 0)
+            if(m_presets.presetCoordinates.Length > 0)
             {
                 _updatePlayerPosition = true;
-                foreach (var mark in m_presetCoordinates)
+                foreach (var mark in m_presets.presetCoordinates)
                     MakeMarkerAtLocation(mark);
 
                 Debug.Log("Offset is set to " + _offset.ToString("F4"));
@@ -178,7 +181,7 @@ namespace LocalProximityGame.Scripts
                 m_offsetInfo.text = _offsetTimerCount + " _offset is " + _offset ;
             if (_offsetTimerCount >= _offsetTimer)
             {
-                if(m_presetCoordinates.Length > 0)
+                if(m_presets.presetCoordinates.Length > 0)
                     _offset = new Vector3(Input.location.lastData.latitude, 0f, Input.location.lastData.longitude);
                 _updatePlayerPosition = true;
                 if (m_offsetInfo)

@@ -1301,37 +1301,7 @@ MonoBehaviour:
   m_nearestMarker: {fileID: 474182424}
   m_useHeading: 1
   m_useFirstPresetAsStartPosition: 1
-  m_presetCoordinates:
-  - latitude: 39.77528
-    longitude: -105.06448
-    altitude: 0
-    label: Home
-    includeInMarkerList: 0
-  - latitude: 39.77488
-    longitude: -105.06622
-    altitude: 0
-    label: Kendall
-    includeInMarkerList: 1
-  - latitude: 39.77544
-    longitude: -105.06391
-    altitude: 0
-    label: Ingalls
-    includeInMarkerList: 1
-  - latitude: 39.77537
-    longitude: -105.06448
-    altitude: 0
-    label: 10 m North
-    includeInMarkerList: 0
-  - latitude: 39.77301
-    longitude: -105.06272
-    altitude: 0
-    label: Harlan and 41st
-    includeInMarkerList: 0
-  - latitude: 39.77432
-    longitude: -105.06074
-    altitude: 0
-    label: NW corner of Randall park
-    includeInMarkerList: 0
+  m_presets: {fileID: 11400000, guid: da4f67ef7b024433194a3455322c7e12, type: 2}
 --- !u!4 &896264702
 Transform:
   m_ObjectHideFlags: 0
